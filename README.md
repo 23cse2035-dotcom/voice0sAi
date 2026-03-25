@@ -99,16 +99,13 @@ src/
 - Supabase account (already configured)
 - Murf AI API key (from https://murf.ai/api)
 
-### Installation
+## ⚙️ Installation
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+### 1. Install dependencies
+```bash
+npm install
 
-2. Configure `.env`:
-   ```
-  # Murf Falcon API Configuration
+# Murf Falcon API Configuration
 MURF_API_KEY=your_murf_api_key_here
 MURF_API_URL=https://api.murf.ai/v1/speech/generate
 
@@ -120,7 +117,6 @@ GROQ_API_KEY=your_groq_api_key_here
 # Server Configuration
 PORT=3000
 NODE_ENV=development
-   ```
 
 3. Start development:
    ```bash
