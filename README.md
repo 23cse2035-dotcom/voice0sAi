@@ -108,9 +108,18 @@ src/
 
 2. Configure `.env`:
    ```
-   VITE_SUPABASE_URL=your_supabase_url
-   VITE_SUPABASE_ANON_KEY=your_anon_key
-   VITE_MURF_API_KEY=your_murf_api_key
+  # Murf Falcon API Configuration
+MURF_API_KEY=your_murf_api_key_here
+MURF_API_URL=https://api.murf.ai/v1/speech/generate
+
+# AI Model API Configuration (Choose one)
+OPENAI_API_KEY=your_openai_api_key_here
+# OR
+GROQ_API_KEY=your_groq_api_key_here
+
+# Server Configuration
+PORT=3000
+NODE_ENV=development
    ```
 
 3. Start development:
