@@ -1,11 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, List, MessageSquare, Loader2 } from 'lucide-react';
+import { Mic, MicOff, List, MessageSquare, Loader2, Globe, Volume2 } from 'lucide-react';
 import { WaveAnimation } from './WaveAnimation';
 import { MessageBubble } from './MessageBubble';
 import { TaskList } from './TaskList';
+import { Settings } from './Settings';
+import { DubbingPanel } from './DubbingPanel';
 import { Message, Task, UserContext } from '../types';
-import { startListening, stopListening } from '../utils/speechRecognition';
-import { speakWithMurf, stopSpeaking } from '../utils/murfTTS';
+import { startListening, stopListening, setLanguage } from '../utils/speechRecognition';
+import {
+  speakWithMurf,
+  stopSpeaking,
+  AVAILABLE_VOICES,
+  generateBilingual,
+  cloneVoice,
+  isAudioPlaying,
+  MurfTTSOptions,
+} from '../utils/murfTTS';
 import { detectIntent, getIntentCategory } from '../utils/intentDetection';
 import { detectEmotion } from '../utils/emotionAnalysis';
 import { generateResponse } from '../utils/aiProcessor';
@@ -35,6 +45,15 @@ export function VoiceOS() {
   });
   const [activeTab, setActiveTab] = useState<'chat' | 'tasks'>('chat');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const [selectedVoice, setSelectedVoice] = useState(AVAILABLE_VOICES[0].id);
+  const [selectedTone, setSelectedTone] = useState<MurfTTSOptions['tone']>('conversational');
+  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [speechRate, setSpeechRate] = useState(1.0);
+  const [pitch, setPitch] = useState(1.0);
+  const [isDubbingOpen, setIsDubbingOpen] = useState(false);
+  const [showBilingual, setShowBilingual] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -131,7 +150,12 @@ export function VoiceOS() {
     setIsProcessing(false);
 
     try {
-      await speakWithMurf(response);
+      await speakWithMurf(response, {
+        voiceId: selectedVoice,
+        tone: selectedTone,
+        rate: speechRate,
+        pitch: pitch,
+      });
     } catch (error) {
       console.error('TTS error:', error);
     } finally {
@@ -143,7 +167,7 @@ export function VoiceOS() {
     if (isListening) {
       stopListening();
       setIsListening(false);
-    } else if (isSpeaking) {
+    } else if (isSpeaking || isAudioPlaying()) {
       stopSpeaking();
       setIsSpeaking(false);
     } else {
@@ -155,6 +179,27 @@ export function VoiceOS() {
           setIsListening(false);
         }
       );
+    }
+  };
+
+  const handleLanguageChange = (language: string) => {
+    setSelectedLanguage(language);
+    const langCode = language === 'Hindi' ? 'hi-IN' : language === 'Spanish' ? 'es-ES' : 'en-US';
+    setLanguage(langCode);
+  };
+
+  const handleBilingualDemo = async () => {
+    setIsProcessing(true);
+    try {
+      await generateBilingual(
+        'Welcome to VoiceOS AI. This is an English message.',
+        'वॉइस ओएस एआई में स्वागत है। यह एक हिंदी संदेश है।'
+      );
+      await addMessage('Bilingual demo: English and Hindi', 'assistant');
+    } catch (error) {
+      console.error('Bilingual error:', error);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -183,29 +228,60 @@ export function VoiceOS() {
         </header>
 
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="flex border-b">
-            <button
-              onClick={() => setActiveTab('chat')}
-              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition-colors ${
-                activeTab === 'chat'
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <MessageSquare className="w-5 h-5" />
-              Conversation
-            </button>
-            <button
-              onClick={() => setActiveTab('tasks')}
-              className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition-colors ${
-                activeTab === 'tasks'
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <List className="w-5 h-5" />
-              Tasks ({tasks.filter((t) => !t.completed).length})
-            </button>
+          <div className="flex items-center justify-between border-b p-4 bg-gray-50">
+            <div className="flex gap-1">
+              <button
+                onClick={() => setActiveTab('chat')}
+                className={`flex items-center justify-center gap-2 px-4 py-2 font-medium rounded-lg transition-colors ${
+                  activeTab === 'chat'
+                    ? 'text-blue-600 bg-blue-50'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                Chat
+              </button>
+              <button
+                onClick={() => setActiveTab('tasks')}
+                className={`flex items-center justify-center gap-2 px-4 py-2 font-medium rounded-lg transition-colors ${
+                  activeTab === 'tasks'
+                    ? 'text-blue-600 bg-blue-50'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <List className="w-4 h-4" />
+                Tasks ({tasks.filter((t) => !t.completed).length})
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsDubbingOpen(true)}
+                title="Audio Dubbing"
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <Volume2 className="w-5 h-5 text-gray-700" />
+              </button>
+              <button
+                onClick={handleBilingualDemo}
+                title="Bilingual Demo"
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors flex items-center gap-1"
+              >
+                <Globe className="w-5 h-5 text-gray-700" />
+              </button>
+              <Settings
+                selectedVoice={selectedVoice}
+                selectedTone={selectedTone}
+                selectedLanguage={selectedLanguage}
+                speechRate={speechRate}
+                pitch={pitch}
+                onVoiceChange={setSelectedVoice}
+                onToneChange={(tone) => setSelectedTone(tone as MurfTTSOptions['tone'])}
+                onLanguageChange={handleLanguageChange}
+                onRateChange={setSpeechRate}
+                onPitchChange={setPitch}
+              />
+            </div>
           </div>
 
           <div className="h-[500px] overflow-y-auto p-6">
@@ -216,14 +292,29 @@ export function VoiceOS() {
                     <Mic className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                     <p className="text-lg font-medium mb-2">Welcome to VoiceOS AI</p>
                     <p className="text-sm">Press the microphone to start talking</p>
-                    <div className="mt-6 text-left max-w-md mx-auto space-y-2">
-                      <p className="font-medium text-gray-700">Try saying:</p>
-                      <ul className="text-sm space-y-1 text-gray-600">
-                        <li>"Add a meeting at 6 PM"</li>
-                        <li>"What are my tasks?"</li>
-                        <li>"Explain recursion"</li>
-                        <li>"I didn't understand, can you simplify?"</li>
-                      </ul>
+                    <div className="mt-8 space-y-4">
+                      <div className="text-left max-w-md mx-auto space-y-2">
+                        <p className="font-medium text-gray-700 text-sm">Productivity:</p>
+                        <ul className="text-sm space-y-1 text-gray-600">
+                          <li>"Add a meeting at 6 PM"</li>
+                          <li>"What are my tasks?"</li>
+                        </ul>
+                      </div>
+                      <div className="text-left max-w-md mx-auto space-y-2">
+                        <p className="font-medium text-gray-700 text-sm">Learning:</p>
+                        <ul className="text-sm space-y-1 text-gray-600">
+                          <li>"Explain recursion"</li>
+                          <li>"I didn't understand, simplify"</li>
+                        </ul>
+                      </div>
+                      <div className="text-left max-w-md mx-auto space-y-2">
+                        <p className="font-medium text-gray-700 text-sm">Features:</p>
+                        <ul className="text-sm space-y-1 text-gray-600">
+                          <li>Change voice, tone, and speed in Settings</li>
+                          <li>Use Dubbing to translate audio to other languages</li>
+                          <li>Click Globe icon for bilingual demo</li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -284,6 +375,8 @@ export function VoiceOS() {
             </div>
           </div>
         </div>
+
+        <DubbingPanel isOpen={isDubbingOpen} onClose={() => setIsDubbingOpen(false)} />
 
         <footer className="mt-8 text-center text-sm text-gray-500">
           <p>Powered by Murf Falcon TTS API</p>

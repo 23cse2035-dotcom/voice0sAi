@@ -17,6 +17,7 @@ interface SpeechRecognition extends EventTarget {
   onresult: ((event: SpeechRecognitionEvent) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
   onend: (() => void) | null;
+  onstart: (() => void) | null;
 }
 
 declare global {
@@ -26,7 +27,13 @@ declare global {
   }
 }
 
+export interface TranscriptionOptions {
+  language?: string;
+  useWebSpeechAPI?: boolean;
+}
+
 let recognition: SpeechRecognition | null = null;
+let isListeningActive = false;
 
 export function initializeSpeechRecognition(): SpeechRecognition | null {
   const SpeechRecognitionAPI =
@@ -40,7 +47,7 @@ export function initializeSpeechRecognition(): SpeechRecognition | null {
   if (!recognition) {
     recognition = new SpeechRecognitionAPI();
     recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.lang = 'en-US';
   }
 
@@ -58,9 +65,29 @@ export function startListening(
     return;
   }
 
+  isListeningActive = true;
+  let finalTranscript = '';
+
+  rec.onstart = () => {
+    isListeningActive = true;
+  };
+
   rec.onresult = (event: SpeechRecognitionEvent) => {
-    const transcript = event.results[event.resultIndex][0].transcript;
-    onResult(transcript);
+    let interimTranscript = '';
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+
+      if (event.results[i].isFinal) {
+        finalTranscript += transcript + ' ';
+      } else {
+        interimTranscript += transcript;
+      }
+    }
+
+    if (finalTranscript) {
+      onResult(finalTranscript.trim());
+    }
   };
 
   rec.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -69,7 +96,7 @@ export function startListening(
   };
 
   rec.onend = () => {
-    console.log('Speech recognition ended');
+    isListeningActive = false;
   };
 
   try {
@@ -77,11 +104,74 @@ export function startListening(
   } catch (error) {
     console.error('Error starting recognition:', error);
     onError?.('Failed to start speech recognition');
+    isListeningActive = false;
   }
 }
 
 export function stopListening(): void {
   if (recognition) {
-    recognition.stop();
+    try {
+      recognition.stop();
+    } catch (error) {
+      console.warn('Error stopping recognition:', error);
+    }
+    isListeningActive = false;
   }
+}
+
+export function setLanguage(language: string): void {
+  const rec = initializeSpeechRecognition();
+  if (rec) {
+    rec.lang = language;
+  }
+}
+
+export function isListening(): boolean {
+  return isListeningActive;
+}
+
+export async function transcribeAudio(audioBlob: Blob): Promise<string> {
+  const apiKey = import.meta.env.VITE_MURF_API_KEY;
+
+  if (!apiKey || apiKey === 'your_murf_api_key_here') {
+    console.warn('Murf API key not configured for transcription');
+    return '';
+  }
+
+  const formData = new FormData();
+  formData.append('audio', audioBlob);
+
+  try {
+    const response = await fetch('https://api.murf.ai/v1/transcribe', {
+      method: 'POST',
+      headers: {
+        'api-key': apiKey,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Transcription failed: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result.text || '';
+  } catch (error) {
+    console.error('Transcription error:', error);
+    return '';
+  }
+}
+
+export async function transcribeAudioFile(
+  file: File,
+  options: TranscriptionOptions = {}
+): Promise<string> {
+  const { language = 'en-US' } = options;
+
+  setLanguage(language);
+  return transcribeAudio(file);
+}
+
+export function isSpeechRecognitionSupported(): boolean {
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
