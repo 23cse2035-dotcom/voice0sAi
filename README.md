@@ -346,15 +346,7 @@ VITE_MURF_API_KEY=ap2_eb1b5645-9290-40e2-8b74-fc46f282f9ea
 
 ## 📸 Screenshots
 
-### 🎤 Voice Interaction Interface
-![Voice UI](./screenshots/voice-ui.png)
-
-### 📊 Task Management System
-![Tasks](./screenshots/tasks.png)
-
-### ⚙️ Voice Settings Panel
-![Settings](./screenshots/settings.png)
-
-### 🌍 Multilingual Interaction
-![Multilingual](./screenshots/multilingual.png)
-
+![UI](./Picture1.jpg)
+![Tasks](./Picture2.jpg)
+![Settings](./Picture3.jpg)
+![Multilingual](./Picture4.png)
