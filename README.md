@@ -302,8 +302,59 @@ MIT License - Built for Murf AI Voice Hackathon 2026
 
 
 
-## Demo video link
-https://drive.google.com/file/d/1jioYYOJE2S4wfkc1JY4ITzKg9bmSz59O/view?usp=sharing
+## 🎥 Demo Video
+
+Watch the complete working demo of VoiceOS AI:
+
+👉 [Click here to watch demo video](https://drive.google.com/file/d/1jioYYOJE2S4wfkc1JY4ITzKg9bmSz59O/view?usp=sharing)
+
+### Demo Highlights:
+- Real-time voice interaction
+- Emotion-aware responses
+- Adaptive learning explanation
+- Task management via voice
+- Multilingual (English + Hindi) conversation
+
+## 🔑 API Usage
+
+VoiceOS AI integrates multiple APIs to enable real-time voice-based interaction:
+
+### 1. Murf Falcon Text-to-Speech API
+- Converts AI-generated text into natural human-like voice
+- Supports multiple voices and languages
+- Ultra-low latency (<130ms)
+- Used for real-time audio responses
+
+### 2. Web Speech API (Speech-to-Text)
+- Captures user voice input from microphone
+- Converts speech into text in real-time
+- Supports continuous listening and interim results
+
+### 3. AI Processing Layer
+- Processes user queries
+- Detects user intent (learning / task / general)
+- Generates intelligent responses
+
+### 🔐 Secure API Key Handling
+- All API keys are stored in `.env` file
+- No sensitive keys are exposed in the codebase
+- Environment variables are used for secure access
+
+Example:
+VITE_MURF_API_KEY=ap2_eb1b5645-9290-40e2-8b74-fc46f282f9ea
 
 
+## 📸 Screenshots
+
+### 🎤 Voice Interaction Interface
+![Voice UI](./screenshots/voice-ui.png)
+
+### 📊 Task Management System
+![Tasks](./screenshots/tasks.png)
+
+### ⚙️ Voice Settings Panel
+![Settings](./screenshots/settings.png)
+
+### 🌍 Multilingual Interaction
+![Multilingual](./screenshots/multilingual.png)
 
